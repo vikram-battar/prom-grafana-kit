@@ -1,0 +1,33 @@
+# Example service spec. Copy this, change the values, run:
+#   monitorkit generate --spec service.yaml --out ./out
+service: checkout-api
+namespace: payments
+job: checkout-api          # the prometheus scrape job label
+team: platform
+metrics_path: /metrics
+runbook_base_url: https://runbooks.example.com   # placeholder, point at your real runbooks
+
+error_budget:
+  error_rate_warn: 0.01      # 1% 5xx -> warning
+  error_rate_critical: 0.05  # 5% 5xx -> critical
+
+latency:
+  p99_warn_ms: 500
+  p99_critical_ms: 1000
+
+resources:
+  cpu_warn: 0.85            # fraction of requested CPU
+  memory_warn: 0.90         # fraction of requested memory
+
+evaluation:
+  for_warn: 10m
+  for_critical: 5m
+
+alerts:                     # set any of these to false to skip it
+  target_down: true
+  error_budget: true
+  latency: true
+  resources: true
+
+dashboard:
+  datasource: Prometheus
