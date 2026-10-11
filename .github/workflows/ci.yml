@@ -1,0 +1,21 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -m pytest tests/ -v
+      - run: python -m py_compile $(find src tests -name "*.py")
+      - run: python -m monitorkit.cli generate --spec examples/service.yaml --out /tmp/out
+      - run: python -m monitorkit.cli lint --alerts /tmp/out/checkout-api-alerts.yaml --dashboard /tmp/out/checkout-api-dashboard.json
