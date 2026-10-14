@@ -6,6 +6,7 @@ RUNBOOK_PATHS = {
     "HighLatencyP99": "/high-latency",
     "CpuSaturation": "/cpu-saturation",
     "MemorySaturation": "/memory-saturation",
+    "PodRestarting": "/pod-restarts",
 }
 
 
@@ -30,6 +31,7 @@ def build_rules(spec):
     ns = spec["namespace"]
     job = spec["job"]
     ev = spec["evaluation"]
+    pod_sel = 'namespace="%s",pod=~"%s-.*"' % (ns, svc)
     rules = []
 
     if spec["alerts"]["target_down"]:
@@ -102,7 +104,6 @@ def build_rules(spec):
 
     if spec["alerts"]["resources"]:
         res = spec["resources"]
-        pod_sel = 'namespace="%s",pod=~"%s-.*"' % (ns, svc)
         cpu_ratio = (
             'sum(rate(container_cpu_usage_seconds_total{%s}[5m]))\n'
             '  / sum(kube_pod_container_resource_requests{%s,resource="cpu"})' % (pod_sel, pod_sel)
@@ -132,6 +133,24 @@ def build_rules(spec):
                 "%s memory usage above %.0f%% of requests" % (svc, res["memory_warn"] * 100),
                 "Containers are using more than %.0f%% of requested memory for %s. "
                 "Watch for OOMKills." % (res["memory_warn"] * 100, ev["for_warn"]),
+                spec,
+            )
+        )
+
+    if spec["alerts"]["restarts"]:
+        rst = spec["restarts"]
+        restarts = (
+            'sum(increase(kube_pod_container_status_restarts_total{%s}[1h]))' % pod_sel
+        )
+        rules.append(
+            _rule(
+                "PodRestarting",
+                "%s > %d" % (restarts, rst["warn"]),
+                "warning",
+                ev["for_warn"],
+                "%s pods restarting more than %d times/hour" % (svc, rst["warn"]),
+                "Pods for %s restarted %d+ times in the last hour. "
+                "Check crashlooping containers and recent deploys." % (svc, rst["warn"]),
                 spec,
             )
         )

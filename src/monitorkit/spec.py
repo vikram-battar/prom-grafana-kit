@@ -31,12 +31,15 @@ def load_spec(path):
     res.setdefault("cpu_warn", 0.85)
     res.setdefault("memory_warn", 0.90)
 
+    rst = data.setdefault("restarts", {})
+    rst.setdefault("warn", 5)
+
     ev = data.setdefault("evaluation", {})
     ev.setdefault("for_warn", "10m")
     ev.setdefault("for_critical", "5m")
 
     alerts = data.setdefault("alerts", {})
-    for key in ("target_down", "error_budget", "latency", "resources"):
+    for key in ("target_down", "error_budget", "latency", "resources", "restarts"):
         alerts.setdefault(key, True)
 
     dash = data.setdefault("dashboard", {})
