@@ -12,7 +12,7 @@ def test_dashboard_structure():
     dash = build_dashboard(SPEC)
     assert dash["title"] == "checkout-api - service overview"
     assert dash["uid"].startswith("svc-")
-    assert len(dash["panels"]) == 6
+    assert len(dash["panels"]) == 8
     assert json.dumps(dash)  # must be JSON-serializable
 
 
@@ -31,3 +31,12 @@ def test_datasource_template_variable():
     names = [v["name"] for v in dash["templating"]["list"]]
     assert "datasource" in names
     assert "namespace" in names
+
+
+def test_throttling_panels_present():
+    dash = build_dashboard(SPEC)
+    titles = [p["title"] for p in dash["panels"]]
+    assert "CPU throttling" in titles
+    assert "Throttled pods" in titles
+    throttling = next(p for p in dash["panels"] if p["title"] == "CPU throttling")
+    assert "container_cpu_cfs_throttled_seconds_total" in throttling["targets"][0]["expr"]

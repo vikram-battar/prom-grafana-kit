@@ -94,6 +94,23 @@ def build_dashboard(spec):
             x=12,
             y=16,
         ),
+        _panel(
+            7,
+            "CPU throttling",
+            ['sum(rate(container_cpu_cfs_throttled_seconds_total{%s}[5m]))' % pod_sel],
+            y_unit="s",
+            x=0,
+            y=24,
+        ),
+        _panel(
+            8,
+            "Throttled pods",
+            ['count(sum by (pod) (rate(container_cpu_cfs_throttled_seconds_total{%s}[5m])) > 0)' % pod_sel],
+            ptype="stat",
+            grid_x=12,
+            x=12,
+            y=24,
+        ),
     ]
 
     return {
