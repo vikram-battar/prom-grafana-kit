@@ -76,3 +76,54 @@ def test_broken_yaml_is_error(tmp_path):
     p.write_text("spec:\n  groups: [unclosed")
     findings = lint_alerts(str(p))
     assert any(f["check"] == "yaml-parse" for f in findings if f["level"] == "error")
+
+
+def _write_warning_only_alerts(tmp_path):
+    """An alert with no 'for' clause: warning, not error."""
+    manifest = {
+        "apiVersion": "monitoring.coreos.com/v1",
+        "kind": "PrometheusRule",
+        "metadata": {"name": "x", "namespace": "y"},
+        "spec": {
+            "groups": [
+                {
+                    "name": "x.rules",
+                    "rules": [
+                        {
+                            "alert": "NoForClause",
+                            "expr": "up == 0",
+                            "labels": {"severity": "warning"},
+                            "annotations": {
+                                "summary": "s",
+                                "description": "d",
+                                "runbook_url": "https://runbooks.example.com/x",
+                            },
+                        }
+                    ],
+                }
+            ]
+        },
+    }
+    return _write_alerts(tmp_path, manifest)
+
+
+def test_strict_promotes_warnings_to_failure(tmp_path, capsys):
+    from argparse import Namespace
+
+    from monitorkit.cli import cmd_lint
+
+    path = _write_warning_only_alerts(tmp_path)
+    assert cmd_lint(Namespace(alerts=path, dashboard=None, strict=False)) == 0
+    assert cmd_lint(Namespace(alerts=path, dashboard=None, strict=True)) == 1
+
+
+def test_clean_alerts_pass_even_strict(tmp_path):
+    from argparse import Namespace
+
+    from monitorkit.alerts import build_prometheus_rule, build_rules
+    from monitorkit.cli import cmd_lint
+    from monitorkit.spec import load_spec
+
+    spec = load_spec(EXAMPLE)
+    path = _write_alerts(tmp_path, build_prometheus_rule(spec, build_rules(spec)))
+    assert cmd_lint(Namespace(alerts=path, dashboard=None, strict=True)) == 0

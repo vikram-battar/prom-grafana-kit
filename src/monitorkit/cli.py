@@ -44,7 +44,11 @@ def cmd_lint(args):
     errors = sum(1 for f in findings if f["level"] == "error")
     warnings = sum(1 for f in findings if f["level"] == "warning")
     print("%d error(s), %d warning(s)" % (errors, warnings))
-    return 1 if errors else 0
+    if errors:
+        return 1
+    if args.strict and warnings:
+        return 1
+    return 0
 
 
 def main(argv=None):
@@ -59,6 +63,11 @@ def main(argv=None):
     ln = sub.add_parser("lint", help="lint alert rules and/or dashboard files")
     ln.add_argument("--alerts", help="path to PrometheusRule YAML")
     ln.add_argument("--dashboard", help="path to Grafana dashboard JSON")
+    ln.add_argument(
+        "--strict",
+        action="store_true",
+        help="exit non-zero on warnings as well as errors",
+    )
     ln.set_defaults(func=cmd_lint)
 
     args = parser.parse_args(argv)
