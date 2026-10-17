@@ -31,3 +31,17 @@ def test_warn_must_be_below_critical(tmp_path):
     )
     with pytest.raises(ValueError, match="error_rate_warn"):
         load_spec(str(p))
+
+
+def test_runbook_base_url_must_be_http(tmp_path):
+    p = tmp_path / "bad.yaml"
+    p.write_text("service: x\nnamespace: y\njob: z\nrunbook_base_url: ftp://example.com\n")
+    with pytest.raises(ValueError, match="runbook_base_url"):
+        load_spec(str(p))
+
+
+def test_runbook_base_url_http_ok(tmp_path):
+    p = tmp_path / "ok.yaml"
+    p.write_text("service: x\nnamespace: y\njob: z\nrunbook_base_url: http://internal/runbooks\n")
+    spec = load_spec(str(p))
+    assert spec["runbook_base_url"] == "http://internal/runbooks"

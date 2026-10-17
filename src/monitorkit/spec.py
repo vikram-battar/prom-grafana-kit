@@ -50,4 +50,8 @@ def load_spec(path):
     if data["latency"]["p99_warn_ms"] >= data["latency"]["p99_critical_ms"]:
         raise ValueError("p99_warn_ms must be lower than p99_critical_ms")
 
+    url = data["runbook_base_url"]
+    if not (url.startswith("http://") or url.startswith("https://")):
+        raise ValueError("runbook_base_url must start with http:// or https://, got %r" % url)
+
     return data
