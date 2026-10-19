@@ -21,7 +21,7 @@ The generated alerts:
 | `CpuSaturation` | CPU usage vs requests for the service's pods |
 | `MemorySaturation` | memory working set vs requests |
 
-The dashboard has six panels: request rate, 5xx percentage, p50/p95/p99 latency, CPU vs requests, memory vs requests, pod restarts. It assumes the standard Prometheus + kube-state-metrics metric names (`http_requests_total`, `http_request_duration_seconds_bucket`, `container_cpu_usage_seconds_total`). If your app exposes different metric names, adjust `alerts.py` and `dashboards.py` — the query-building code is deliberately plain so it's easy to change.
+The dashboard has eight panels: request rate, 5xx percentage, p50/p95/p99 latency, CPU vs requests, memory vs requests, pod restarts, CPU throttling, throttled pod count. It assumes the standard Prometheus + kube-state-metrics metric names (`http_requests_total`, `http_request_duration_seconds_bucket`, `container_cpu_usage_seconds_total`). If your app exposes different metric names, adjust `alerts.py` and `dashboards.py` — the query-building code is deliberately plain so it's easy to change.
 
 ## Install
 
@@ -45,8 +45,24 @@ Generate:
 
 ```bash
 monitorkit generate --spec myservice.yaml --out ./out
-# wrote ./out/myservice-alerts.yaml (7 alert rules)
-# wrote ./out/myservice-dashboard.json (6 panels)
+# wrote ./out/myservice-alerts.yaml (8 alert rules)
+# wrote ./out/myservice-dashboard.json (8 panels)
+```
+
+What comes out — one of the generated rules:
+
+```yaml
+- alert: PodRestarting
+  expr: sum(increase(kube_pod_container_status_restarts_total{namespace="payments",pod=~"checkout-api-.*"}[1h])) > 5
+  for: 10m
+  labels:
+    severity: warning
+    team: platform
+    service: checkout-api
+  annotations:
+    summary: checkout-api pods restarting more than 5 times/hour
+    description: Pods for checkout-api restarted 5+ times in the last hour. Check crashlooping containers and recent deploys.
+    runbook_url: https://runbooks.example.com/pod-restarts
 ```
 
 Lint (this is the part that belongs in CI):
@@ -54,6 +70,9 @@ Lint (this is the part that belongs in CI):
 ```bash
 monitorkit lint --alerts ./out/myservice-alerts.yaml --dashboard ./out/myservice-dashboard.json
 # 0 error(s), 0 warning(s)
+
+# fail the build on warnings too:
+monitorkit lint --strict --alerts ./out/myservice-alerts.yaml
 ```
 
 Apply:
